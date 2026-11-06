@@ -101,11 +101,20 @@ app.get("/api/settings", (req, res) => {
 
 app.post("/api/settings", (req, res) => {
     const incomingSettings = req.body;
+    const ALLOWED_KEYS = ["theme", "language", "fontSize"];
+    const settings = Object.assign({}, defaultSettings);
 
-    const settings = {};
-
-    for (const key in incomingSettings) {
-        settings[key] = incomingSettings[key];
+    if (incomingSettings && typeof incomingSettings === "object" && !Array.isArray(incomingSettings)) {
+        for (const key of ALLOWED_KEYS) {
+            if (Object.prototype.hasOwnProperty.call(incomingSettings, key)) {
+                if (key === "__proto__" || key === "constructor" || key === "prototype") {
+                    continue;
+                }
+                if (typeof incomingSettings[key] === "string") {
+                    settings[key] = incomingSettings[key];
+                }
+            }
+        }
     }
 
     res.json({

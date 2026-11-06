@@ -30,13 +30,22 @@ if (app) {
 }
 
 function prepareSettings(userSettings) {
-    const settings = {};
+    const ALLOWED_KEYS = ["theme", "language", "fontSize"];
+    const settings = Object.create(null);
 
-    for (const key in userSettings) {
-        settings[key] = userSettings[key];
+    if (userSettings && typeof userSettings === "object") {
+        for (const key of ALLOWED_KEYS) {
+            if (Object.prototype.hasOwnProperty.call(userSettings, key)) {
+                // Ignore dangerous prototype keys
+                if (key === "__proto__" || key === "constructor" || key === "prototype") {
+                    continue;
+                }
+                settings[key] = String(userSettings[key]);
+            }
+        }
     }
 
-    return settings;
+    return Object.assign({}, settings);
 }
 
 const saveButton = document.getElementById("save-settings");
