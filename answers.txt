@@ -1,0 +1,23 @@
+1. Untrusted URL Fragment Input
+   - Location / Code Snippet: `location.hash`
+   - Issue: The application reads data directly from the URL hash fragment, which is untrusted attacker-controllable input that can be manipulated via malicious links.
+
+2. DOM-Based Cross-Site Scripting (DOM XSS)
+   - Location / Code Snippet: Assignment of `location.hash` directly to `innerHTML`
+   - Issue: Attacker-controlled data is parsed directly into the DOM without sanitization, allowing arbitrary HTML and script execution.
+
+3. Untrusted Browser Storage Data
+   - Location / Code Snippet: `localStorage`
+   - Issue: Data retrieved from browser local storage is inherently untrusted because it can be modified by users or any script executing within the same origin.
+
+4. Unvalidated Deserialization and Unhandled Parse Errors
+   - Location / Code Snippet: `JSON.parse(localStorage.getItem("config"))`
+   - Issue: The application parses untrusted browser storage into an object without schema validation and without error handling for malformed JSON syntax.
+
+5. Unsafe Object Merge / Prototype Pollution Risk
+   - Location / Code Snippet: `Object.assign(config, ...)`
+   - Issue: Untrusted properties from the parsed storage object are copied directly into a standard object without key filtering, creating prototype pollution and logic injection risks.
+
+6. Potential SSR Token or Sensitive Data Leakage
+   - Location / Code Snippet: `getUser()` / `renderClient({ user })`
+   - Issue: Passing the complete user object into client rendering risks exposing server-side secrets, tokens, or session identifiers if serialized to the browser.
