@@ -1,5 +1,6 @@
 const express = require("express");
 const path = require("path");
+const crypto = require("crypto");
 
 const { user, defaultSettings } = require("./data");
 
@@ -7,6 +8,22 @@ const app = express();
 const PORT = 3000;
 
 app.use(express.json());
+
+// Content Security Policy (CSP) Middleware
+app.use((req, res, next) => {
+    res.locals.nonce = crypto.randomBytes(16).toString("base64");
+
+    res.setHeader(
+        "Content-Security-Policy",
+        `default-src 'self'; ` +
+        `script-src 'self' 'nonce-${res.locals.nonce}'; ` +
+        `style-src 'self' 'nonce-${res.locals.nonce}'; ` +
+        `img-src 'self' data:; ` +
+        `object-src 'none'; ` +
+        `base-uri 'self';`
+    );
+    next();
+});
 
 /*
  * Home page
@@ -75,7 +92,7 @@ app.get("/", (req, res) => {
                 </section>
             </main>
 
-            <script>
+            <script nonce="${res.locals.nonce}">
                 window.initialUser = ${initialUserData};
             </script>
 
@@ -138,7 +155,7 @@ app.get("/account", (req, res) => {
             >
             <title>Account Settings</title>
 
-            <style>
+            <style nonce="${res.locals.nonce}">
                 body {
                     font-family: Arial, sans-serif;
                     background: #f4f4f4;
@@ -194,7 +211,7 @@ app.get("/account", (req, res) => {
                 <p id="status"></p>
             </div>
 
-            <script>
+            <script nonce="${res.locals.nonce}">
                 document
                     .getElementById("delete-account")
                     .addEventListener("click", () => {

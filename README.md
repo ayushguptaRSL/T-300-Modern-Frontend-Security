@@ -33,3 +33,16 @@ npm start
 - **Verification:**
   - Standard update (`{"theme": "dark", "language": "fr"}`): Settings saved successfully.
   - Pollution payload (`{"__proto__": {"isAdmin": true}, "role": "admin"}`): Dangerous and unexpected keys are discarded; `Object.prototype.isAdmin` remains `undefined`.
+
+### 3. Content Security Policy (CSP) - [RESOLVED]
+- **Location:** `server/server.js` (Express middleware & page routes)
+- **Vulnerability:** Absence of `Content-Security-Policy` header left the browser without defense-in-depth, permitting execution of injected scripts, unauthorized external origins, and plugin objects.
+- **Source & Boundary:** Browsgit ser security boundary; lack of HTTP response enforcement to restrict script/style execution context.
+- **Fix:**
+  - Added nonce-based CSP middleware generating per-request cryptographic nonces (`crypto.randomBytes(16)`).
+  - Enforced directives: `default-src 'self'`, `script-src 'self' 'nonce-...'`, `style-src 'self' 'nonce-...'`, `img-src 'self' data:`, `object-src 'none'`, `base-uri 'self'`.
+  - Added valid `nonce` attributes to authorized inline `<script>` and `<style>` elements on `/` and `/account`.
+- **Verification:**
+  - Validated that `Content-Security-Policy` header is present on all HTTP responses.
+  - Legitimate application scripts (`/app.js`, inline hydration) and styles execute correctly.
+  - Injected inline scripts or external scripts without the valid nonce are blocked by the browser.
