@@ -1,5 +1,6 @@
 const express = require("express");
 const path = require("path");
+const crypto = require("crypto");
 
 const { user, defaultSettings } = require("./data");
 
@@ -8,11 +9,43 @@ const PORT = 3000;
 
 app.use(express.json());
 
+// Security Headers & Framing Defense Middleware
+app.use((req, res, next) => {
+    res.locals.nonce = crypto.randomBytes(16).toString("base64");
+
+    res.setHeader(
+        "Content-Security-Policy",
+        `default-src 'self'; ` +
+        `script-src 'self' 'nonce-${res.locals.nonce}'; ` +
+        `style-src 'self' 'nonce-${res.locals.nonce}'; ` +
+        `img-src 'self' data:; ` +
+        `object-src 'none'; ` +
+        `base-uri 'self'; ` +
+        `frame-ancestors 'none';`
+    );
+    res.setHeader("X-Frame-Options", "DENY");
+    next();
+});
+
+/*
+ * Helper to produce safe public user profile (Data Minimization / DTO)
+ */
+function getPublicUser(userData) {
+    return {
+        id: userData.id,
+        name: userData.name,
+        email: userData.email,
+        role: userData.role
+    };
+}
+
 /*
  * Home page
  */
 app.get("/", (req, res) => {
-    const initialUserData = JSON.stringify(user);
+    // Project only public display fields; strip sessionToken and refreshToken
+    const publicUser = getPublicUser(user);
+    const initialUserData = JSON.stringify(publicUser).replace(/</g, "\\u003c");
 
     res.send(`
         <!DOCTYPE html>
@@ -75,7 +108,7 @@ app.get("/", (req, res) => {
                 </section>
             </main>
 
-            <script>
+            <script nonce="${res.locals.nonce}">
                 window.initialUser = ${initialUserData};
             </script>
 
@@ -89,7 +122,7 @@ app.get("/", (req, res) => {
  * Profile API
  */
 app.get("/api/profile", (req, res) => {
-    res.json(user);
+    res.json(getPublicUser(user));
 });
 
 /*
@@ -101,11 +134,20 @@ app.get("/api/settings", (req, res) => {
 
 app.post("/api/settings", (req, res) => {
     const incomingSettings = req.body;
+    const ALLOWED_KEYS = ["theme", "language", "fontSize"];
+    const settings = Object.assign({}, defaultSettings);
 
-    const settings = {};
-
-    for (const key in incomingSettings) {
-        settings[key] = incomingSettings[key];
+    if (incomingSettings && typeof incomingSettings === "object" && !Array.isArray(incomingSettings)) {
+        for (const key of ALLOWED_KEYS) {
+            if (Object.prototype.hasOwnProperty.call(incomingSettings, key)) {
+                if (key === "__proto__" || key === "constructor" || key === "prototype") {
+                    continue;
+                }
+                if (typeof incomingSettings[key] === "string") {
+                    settings[key] = incomingSettings[key];
+                }
+            }
+        }
     }
 
     res.json({
@@ -129,7 +171,7 @@ app.get("/account", (req, res) => {
             >
             <title>Account Settings</title>
 
-            <style>
+            <style nonce="${res.locals.nonce}">
                 body {
                     font-family: Arial, sans-serif;
                     background: #f4f4f4;
@@ -185,7 +227,7 @@ app.get("/account", (req, res) => {
                 <p id="status"></p>
             </div>
 
-            <script>
+            <script nonce="${res.locals.nonce}">
                 document
                     .getElementById("delete-account")
                     .addEventListener("click", () => {

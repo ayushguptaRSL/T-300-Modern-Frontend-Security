@@ -7,30 +7,45 @@ const username =
     window.initialUser?.name ||
     "Guest";
 
-app.innerHTML = `
-    <section class="profile-card">
-        <h2>Welcome, ${username}</h2>
+if (app) {
+    app.textContent = "";
 
-        <p>
-            Email:
-            ${window.initialUser?.email || "Unknown"}
-        </p>
+    const profileCard = document.createElement("section");
+    profileCard.className = "profile-card";
 
-        <p>
-            Role:
-            ${window.initialUser?.role || "User"}
-        </p>
-    </section>
-`;
+    const heading = document.createElement("h2");
+    heading.textContent = `Welcome, ${username}`;
+
+    const emailParagraph = document.createElement("p");
+    emailParagraph.textContent = `Email: ${window.initialUser?.email || "Unknown"}`;
+
+    const roleParagraph = document.createElement("p");
+    roleParagraph.textContent = `Role: ${window.initialUser?.role || "User"}`;
+
+    profileCard.appendChild(heading);
+    profileCard.appendChild(emailParagraph);
+    profileCard.appendChild(roleParagraph);
+
+    app.appendChild(profileCard);
+}
 
 function prepareSettings(userSettings) {
-    const settings = {};
+    const ALLOWED_KEYS = ["theme", "language", "fontSize"];
+    const settings = Object.create(null);
 
-    for (const key in userSettings) {
-        settings[key] = userSettings[key];
+    if (userSettings && typeof userSettings === "object") {
+        for (const key of ALLOWED_KEYS) {
+            if (Object.prototype.hasOwnProperty.call(userSettings, key)) {
+                // Ignore dangerous prototype keys
+                if (key === "__proto__" || key === "constructor" || key === "prototype") {
+                    continue;
+                }
+                settings[key] = String(userSettings[key]);
+            }
+        }
     }
 
-    return settings;
+    return Object.assign({}, settings);
 }
 
 const saveButton = document.getElementById("save-settings");
