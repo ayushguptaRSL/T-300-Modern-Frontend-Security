@@ -37,7 +37,7 @@ npm start
 ### 3. Content Security Policy (CSP) - [RESOLVED]
 - **Location:** `server/server.js` (Express middleware & page routes)
 - **Vulnerability:** Absence of `Content-Security-Policy` header left the browser without defense-in-depth, permitting execution of injected scripts, unauthorized external origins, and plugin objects.
-- **Source & Boundary:** Browsgit ser security boundary; lack of HTTP response enforcement to restrict script/style execution context.
+- **Source & Boundary:** Browser security boundary; lack of HTTP response enforcement to restrict script/style execution context.
 - **Fix:**
   - Added nonce-based CSP middleware generating per-request cryptographic nonces (`crypto.randomBytes(16)`).
   - Enforced directives: `default-src 'self'`, `script-src 'self' 'nonce-...'`, `style-src 'self' 'nonce-...'`, `img-src 'self' data:`, `object-src 'none'`, `base-uri 'self'`.
@@ -46,3 +46,14 @@ npm start
   - Validated that `Content-Security-Policy` header is present on all HTTP responses.
   - Legitimate application scripts (`/app.js`, inline hydration) and styles execute correctly.
   - Injected inline scripts or external scripts without the valid nonce are blocked by the browser.
+
+### 4. Clickjacking - [RESOLVED]
+- **Location:** `server/server.js` (Express middleware) & `/account` route
+- **Vulnerability:** Missing anti-framing headers allowed sensitive application views (such as `/account` with the "Delete Account" action) to be embedded inside third-party `<iframe>` elements (e.g. `test/iframe-test.html`), exposing users to UI redress attacks.
+- **Source & Boundary:** UI framing boundary; absence of browser-level framing policy.
+- **Fix:**
+  - Added `frame-ancestors 'none'` directive to `Content-Security-Policy`.
+  - Added `X-Frame-Options: DENY` header for legacy browser compatibility.
+- **Verification:**
+  - Tested with `test/iframe-test.html` attempting to embed `http://localhost:3000/account`.
+  - Browser successfully blocks framing with a framing policy error, preventing clickjacking.

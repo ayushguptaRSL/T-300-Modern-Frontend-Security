@@ -9,7 +9,7 @@ const PORT = 3000;
 
 app.use(express.json());
 
-// Content Security Policy (CSP) Middleware
+// Security Headers & Framing Defense Middleware
 app.use((req, res, next) => {
     res.locals.nonce = crypto.randomBytes(16).toString("base64");
 
@@ -20,8 +20,10 @@ app.use((req, res, next) => {
         `style-src 'self' 'nonce-${res.locals.nonce}'; ` +
         `img-src 'self' data:; ` +
         `object-src 'none'; ` +
-        `base-uri 'self';`
+        `base-uri 'self'; ` +
+        `frame-ancestors 'none';`
     );
+    res.setHeader("X-Frame-Options", "DENY");
     next();
 });
 
