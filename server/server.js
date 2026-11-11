@@ -28,10 +28,24 @@ app.use((req, res, next) => {
 });
 
 /*
+ * Helper to produce safe public user profile (Data Minimization / DTO)
+ */
+function getPublicUser(userData) {
+    return {
+        id: userData.id,
+        name: userData.name,
+        email: userData.email,
+        role: userData.role
+    };
+}
+
+/*
  * Home page
  */
 app.get("/", (req, res) => {
-    const initialUserData = JSON.stringify(user);
+    // Project only public display fields; strip sessionToken and refreshToken
+    const publicUser = getPublicUser(user);
+    const initialUserData = JSON.stringify(publicUser).replace(/</g, "\\u003c");
 
     res.send(`
         <!DOCTYPE html>
@@ -108,7 +122,7 @@ app.get("/", (req, res) => {
  * Profile API
  */
 app.get("/api/profile", (req, res) => {
-    res.json(user);
+    res.json(getPublicUser(user));
 });
 
 /*

@@ -57,3 +57,16 @@ npm start
 - **Verification:**
   - Tested with `test/iframe-test.html` attempting to embed `http://localhost:3000/account`.
   - Browser successfully blocks framing with a framing policy error, preventing clickjacking.
+
+### 5. SSR Token Leakage - [RESOLVED]
+- **Location:** `server/server.js` (`GET /` hydration & `GET /api/profile`)
+- **Vulnerability:** The server serialized the entire raw `user` object directly into HTML (`window.initialUser = ...`) and API responses, leaking confidential secrets (`sessionToken`, `refreshToken`) to client scripts and page source.
+- **Source & Boundary:** Server-to-client trust boundary; passing server-only authentication secrets into public client context.
+- **Fix:**
+  - Implemented Data Minimization (DTO pattern) via `getPublicUser()` helper, stripping `sessionToken` and `refreshToken`.
+  - Exposed only public display fields (`id`, `name`, `email`, `role`).
+  - Added HTML entity escaping (`.replace(/</g, '\\u003c')`) on serialized SSR state to prevent script breakout.
+- **Verification:**
+  - Visited `http://localhost:3000/`: Dashboard renders user name, email, and role properly.
+  - Inspected page source and `window.initialUser`: `sessionToken` and `refreshToken` are completely removed.
+  - Queried `/api/profile`: returns only safe user display fields without auth tokens.
